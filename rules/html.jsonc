@@ -1,0 +1,55 @@
+/* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
+/* https://html-eslint.org/docs/rules */
+/* 🔧: Meaning the rule can fix problems automatically by running eslint --fix options */
+/* ⭐: Meaning the rule is recommended */
+{
+	/* BEST PRACTICES */
+		"@html-eslint/no-duplicate-attrs": "error", /* ⭐: Disallow to use duplicate attributes */
+		"@html-eslint/no-duplicate-id": "error", /* ⭐: Disallow to use duplicate id */
+		"@html-eslint/no-extra-spacing-text": "error", /* 🔧: Disallow unnecessary consecutive spaces */
+		"@html-eslint/no-inline-styles": "error", /* Disallow using inline style */
+		"@html-eslint/no-nested-interactive": "error", /* Disallows nested interactive elements */
+		"@html-eslint/no-obsolete-tags": "error", /* ⭐: Disallow to use obsolete elements in HTML5 */
+		"@html-eslint/no-restricted-attr-values": "error", /* Disallow specified attributes */
+		"@html-eslint/no-restricted-attrs": "error", /* Disallow specified attributes */
+		"@html-eslint/no-script-style-type": "error", /* 🔧: Enforce to omit type attributes for style sheets and scripts */
+		"@html-eslint/no-target-blank": "error", /* Disallow usage of unsafe target='_blank' */
+		"@html-eslint/prefer-https": "error", /* Prefer to use HTTPS for embedded resources */
+		"@html-eslint/require-attrs": "error", /* Require specified attributes */
+		"@html-eslint/require-button-type": "error", /* Require use of button element with a valid type attribute. */
+		"@html-eslint/require-closing-tags": "error", /* ⭐🔧: Require closing tags */
+		"@html-eslint/require-doctype": "error", /* ⭐🔧: Require <!DOCTYPE HTML> in html */
+		"@html-eslint/require-li-container": "error", /* ⭐: Enforce <li> to be in <ul>, <ol> or <menu> */
+		"@html-eslint/require-meta-charset": "error", /* Enforce to use <meta charset="..."> in <head> */
+	/* SEO */
+		"@html-eslint/no-multiple-h1": "error", /* ⭐: Disallow multiple <h1></h1> */
+		"@html-eslint/require-lang": "error", /* ⭐: Require lang attribute at <html> tag */
+		"@html-eslint/require-meta-description": "error", /* Require use of <meta name="description"> in <head> */
+		"@html-eslint/require-open-graph-protocol": "error", /* Enforce to use <meta name="viewport"> in <head> */
+		"@html-eslint/require-title": "error", /* ⭐: Require <title><title/> in the <head><head/> */
+	/* Accessibility */
+		"@html-eslint/no-abstract-roles": "error", /* Disallow to use of abstract roles */
+		"@html-eslint/no-accesskey-attrs": "error", /* Disallow to use of accesskey attribute */
+		"@html-eslint/no-aria-hidden-body": "error", /* Disallow to use aria-hidden attributes on the body element. */
+		"@html-eslint/no-heading-inside-button": "error", /* Disallows the use of heading elements inside. */
+		"@html-eslint/no-invalid-role": "error", /* Disallows use of invalid role. */
+		"@html-eslint/no-non-scalable-viewport": "error", /* Disallow use of user-scalable=no in <meta name="viewport">. */
+		"@html-eslint/no-positive-tabindex": "error", /* Disallow use of positive tabindex. */
+		"@html-eslint/no-skip-heading-levels": "error", /* Disallow skipping heading levels */
+		"@html-eslint/require-form-method": "error", /* Require method attribute in <form> */
+		"@html-eslint/require-frame-title": "error", /* Require title in <frame>, <iframe> */
+		"@html-eslint/require-img-alt": "error", /* ⭐: Require alt attribute at <img> tag */
+		"@html-eslint/require-input-label": "error", /* Enforces use of label for form elements(input, textarea, select) */
+		"@html-eslint/require-meta-viewport": "error", /* Enforce to use <meta name="viewport"> in <head> */
+	/* Style */
+		"@html-eslint/attrs-newline": "error", /* ⭐🔧: Enforce newline between attributes */
+		"@html-eslint/element-newline": "error", /* ⭐🔧: Enforce newline between elements */
+		"@html-eslint/id-naming-convention": "error", /* Enforce consistent naming id attributes */
+		"@html-eslint/indent": "error", /* ⭐🔧: Enforce consistent indentation */
+		"@html-eslint/lowercase": "error", /* 🔧: Enforce to use lowercase for tag and attribute names. */
+		"@html-eslint/no-extra-spacing-attrs": "error", /* ⭐🔧: Disallow an extra spacing around attributes */
+		"@html-eslint/no-multiple-empty-lines": "error", /* 🔧: Disallow multiple empty lines */
+		"@html-eslint/no-trailing-spaces": "error", /* 🔧: Disallow trailing whitespace at the end of lines */
+		"@html-eslint/quotes": "error", /* ⭐🔧: Enforce consistent quoting attributes with double(") or single(') */
+		"@html-eslint/sort-attrs": "error" /* 🔧: Enforce attributes alphabetical sorting */
+}
