@@ -108,5 +108,5 @@ export default cfg;
 		if (eTag === newETag) { console.info('config.mjs: template up to date'); return; }
 		console.info('config.mjs: update template to ' + newETag);
 		const txt = await r.text(), { writeFile } = await import('node:fs/promises');
-		await writeFile('eslint.config.mjs', txt.replace(/eTag = 'W/"516c5a4063301b924b8e26046ad62db6dc046d7982e3b45ffc7db8904b0c315c"',
+		await writeFile('eslint.config.mjs', txt.replace(/eTag = '.+/, `eTag = '${newETag}',`));
 	});
