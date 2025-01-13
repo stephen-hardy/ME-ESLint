@@ -81,4 +81,14 @@ const cfg = [
 		cfg.push({ files: ['**/*.json'], language: 'json/json', rules }); // lint JSON files
 		cfg.push({ files: ['**/*.jsonc', '.vscode/*.json'], language: 'json/jsonc', rules }); // lint JSONC files
 	});
+	await importFallback('@eslint/markdown/dist/esm/index.js').then(async ({ default: markdown }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+		if (!markdown) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+		const rules = await git('rules/markdown.jsonc');
+		cfg.push({ files: ['**/*.md'], plugins: { markdown }, language: 'markdown/commonmark', rules });
+	});
+	await importFallback('@eslint/css/dist/esm/index.js').then(async ({ default: css }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+		if (!css) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+		const rules = await git('rules/css.jsonc');
+		cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules });
+	});
 export default cfg;

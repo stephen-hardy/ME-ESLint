@@ -1,4 +1,5 @@
 /* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
+/* https://github.com/eslint/json?tab=readme-ov-file#rules */
 {
 	"json/no-duplicate-keys": "error", /* warns when there are two keys in an object with the same text. */
 	"json/no-empty-keys": "error", /* warns when there is a key in an object that is an empty string or contains only whitespace (note: package-lock.json uses empty keys intentionally) */
