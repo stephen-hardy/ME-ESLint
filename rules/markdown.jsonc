@@ -1,11 +1,11 @@
 /* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
 /* https://github.com/eslint/markdown?tab=readme-ov-file#rules */
 {
-	"fenced-code-language": "error", // R:1 - Require languages for fenced code blocks
-	"heading-increment": "error", // R:1 - Enforce heading levels increment by one
-	"no-duplicate-headings": "error", // R:0 - Disallow duplicate headings in the same document
-	"no-empty-links": "error", // R:1 - Disallow empty links
-	"no-html": "error", // R:0 - Disallow HTML tags
-	"no-invalid-label-refs": "error", // R:1 - Disallow invalid label references
-	"no-missing-label-refs": "error" // R:1 - Disallow missing label references
+	"fenced-code-language": "error", /* R:1 - Require languages for fenced code blocks */
+	"heading-increment": "error", /* R:1 - Enforce heading levels increment by one */
+	"no-duplicate-headings": "error", /* R:0 - Disallow duplicate headings in the same document */
+	"no-empty-links": "error", /* R:1 - Disallow empty links */
+	"no-html": "error", /* R:0 - Disallow HTML tags */
+	"no-invalid-label-refs": "error", /* R:1 - Disallow invalid label references */
+	"no-missing-label-refs": "error" /* R:1 - Disallow missing label references */
 }
