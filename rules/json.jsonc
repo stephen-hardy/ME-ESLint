@@ -1,8 +1,8 @@
 /* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
 {
-	"no-duplicate-keys": "error", // warns when there are two keys in an object with the same text.
-	"no-empty-keys": "error", // warns when there is a key in an object that is an empty string or contains only whitespace (note: package-lock.json uses empty keys intentionally)
-	"no-unsafe-values": "error", // warns on values that are unsafe for interchange, such as strings with unmatched surrogates, numbers that evaluate to Infinity, numbers that evaluate to zero unintentionally, numbers that look like integers but are too large, and subnormal numbers.
-	"no-unnormalized-keys": "error", // warns on keys containing unnormalized characters. You can optionally specify the normalization form via { form: "form_name" }, where form_name can be any of "NFC", "NFD", "NFKC", or "NFKD".
-	"top-level-interop": "error" // warns when the top-level item in the document is neither an array nor an object. This can be enabled to ensure maximal interoperability with the oldest JSON parsers.
+	"no-duplicate-keys": "error", /* warns when there are two keys in an object with the same text. */
+	"no-empty-keys": "error", /* warns when there is a key in an object that is an empty string or contains only whitespace (note: package-lock.json uses empty keys intentionally) */
+	"no-unsafe-values": "error", /* warns on values that are unsafe for interchange, such as strings with unmatched surrogates, numbers that evaluate to Infinity, numbers that evaluate to zero unintentionally, numbers that look like integers but are too large, and subnormal numbers. */
+	"no-unnormalized-keys": "error", /* warns on keys containing unnormalized characters. You can optionally specify the normalization form via { form: "form_name" }, where form_name can be any of "NFC", "NFD", "NFKC", or "NFKD". */
+	"top-level-interop": "error" /* warns when the top-level item in the document is neither an array nor an object. This can be enabled to ensure maximal interoperability with the oldest JSON parsers. */
 }
