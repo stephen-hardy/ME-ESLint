@@ -1,4 +1,12 @@
-// UTILITIES: git(), importFallback(), json(), asyncExec(), saveTemp(), getTemp()
+const npmGlobal = await import('node:child_process')
+	.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
+	.then(({ stdout, stderr, error }) => {
+		if (stderr || error) { throw new Error(stderr || error); }
+		console.info(`npmGlobal = ${stdout}`);
+		return stdout;
+	})
+	.catch(err => console.error('Unable to get npmGlobal', err));
+// UTILITIES: git(), importFallback(), getJson(), saveTemp(), getTemp()
 	const gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/sh-eslint/refs/heads/main/'; // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
 	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder of name "sh-eslint"
 		const [fs, os, path] = await Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]),
@@ -15,51 +23,62 @@
 		if (content) { console.info(`FromCache: ${filePath} (len=${content.length})`); }
 		return content;
 	}
-	async function json(url) { // fetch url, strip multi-line comments (syntax), return parsed JSON
-		const cacheFile = url.split('/').at(-1);
+	async function getJson(url) { // fetch url, strip multi-line comments (syntax), return parsed JSON
+		const cacheFile = url.split('/').at(-1), logURL = url.startsWith(gitRepo) ? '[git]' + url.slice(gitRepo.length - 1) : url;
 		return fetch(url).then(r => r.text())
 			.then(t => {
 				const stripped = t.replaceAll(/\/\*.*?\*\//g, ''), parsed = JSON.parse(stripped); // remove ONLY multi-line comment syntax - cheap substitute for actual JSONC support, that doesn't require a dependency
 				saveTemp(cacheFile, stripped);
-				console.info(`Successfully parsed and cached ${url} (len=${t.length},type=${typeof parsed})`);
+				console.info(`Loaded (json=http): ${logURL} (len=${t.length},type=${typeof parsed})`);
 				return parsed;
 			})
 			.catch(async err => {
 				console.error(`Error loading ${url}, falling back to cache or empty object`);
 				console.error(err);
-				return JSON.parse(await getTemp(cacheFile) || '{}'); // if there is an error, return an empty object in hopes that linting might continue. The main rules JSONC may be essential for a given file type. However, there will likely be multiple file types linted, and failure in one shouldn't block functionality of another. Plus, there may be supplemental rules JSONC for overrides, and their failure shouldn't block what we do have from working
+				const cache = await getTemp(cacheFile);
+				if (cache) { // try cache for offline scenarios
+					const parsed = JSON.parse(cache);
+					console.info(`Loaded (json=cache): ${logURL} (len=${cache.length},type=${typeof parsed})`);
+					return parsed;
+				}
+				return {}; // if there is an error, return an empty object in hopes that linting might continue. The main rules JSONC may be essential for a given file type. However, there will likely be multiple file types linted, and failure in one shouldn't block functionality of another. Plus, there may be supplemental rules JSONC for overrides, and their failure shouldn't block what we do have from working
 			});
 	} // NOTE: because single-line comment syntax ("//") is not uncommonly used outside of comments (ex: https://...), it isn't practical to strip those without a dedicated parser. Part of the goal with global eslint and web-hosted rules is to minimize setup and file duplication. Therefore, adding a JSONC parser dependency just to support single-line syntax - when we can get multi-line syntax cheaply - doesn't make a lot of sense
-	async function git(file) { return json(gitRepo + file); }
-	async function asyncExec(cmd) { // only known way to get the npm global directory path is through execution of a command. The child_process.exec function is naturally clunky and callback-oriented. Promisify exec and resolve with the string printed to the console
-		const [{ default: util }, { exec }] = await Promise.all([import('node:util'), import('node:child_process')]);
-		return (await util.promisify(exec)(cmd)).stdout;
-	}
+	async function git(file) { return getJson(gitRepo + file); }
 	async function importFallback(x) {
 		return import(x)
-			.catch(async _ => { // local import failed, try to import from global
-				importFallback.global ??= await asyncExec('npm root -g'); // node has no native way to import a global library, as of Jan 2025, so we need to know the npm global file path in order to specify the import file. This global file path will not change during use, so first successful return should be cached
-				return import(`${importFallback.global}/${x}`); // try import under the npm global directory
-			})
+			.then(m => console.info(`Loaded (import=local): ${x} (keys: ${Object.keys(m)})`) || m)
+			.catch(_ => import(`${npmGlobal}/${x}`)) // try import under the npm global directory
+			.then(m => console.info(`Loaded (import=global): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => { // local and global import failed. Log an error, suggesting an npm (global) install, but return empty objects in the hope that linting might continue
-				console.error(`Unable to import "${x}", is it installed locally OR globally?`);
+				console.error(`Failed import: ${x} - is it installed locally OR globally?`);
 				return { default: {} }; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
 			});
 	}
-export default [
+const cfg = [
 	{
+		files: ['**/*.js', '**/*.mjs'],
 		languageOptions: {
 			globals: {
 				...(await importFallback('globals/index.js')).default.browser
 				// ...globals.nodeBuiltin
 			}
 		},
-		rules: await git('rules.jsonc'),
+		rules: await git('rules/javascript.jsonc'),
 	},
-	{
-		files: ['src/**/*', 'test/**/*'],
-		rules: {
-			semi: ['warn', 'always']
-		}
-	},
+	// {
+	//	files: ['src/**/*', 'test/**/*'],
+	//	rules: {
+	//		semi: ['warn', 'always']
+	//	}
+	// },
 ];
+// plugins
+	await importFallback('@eslint/json/dist/esm/index.js').then(async ({ default: json }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+		if (!json) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+		cfg.unshift({ plugins: { json } });
+		const rules = await git('rules/json.jsonc');
+		cfg.push({ files: ['**/*.json'], language: 'json/json', rules }); // lint JSON files
+		cfg.push({ files: ['**/*.jsonc', '.vscode/*.json'], language: 'json/jsonc', rules }); // lint JSONC files
+	});
+export default cfg;
