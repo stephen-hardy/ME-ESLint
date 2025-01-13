@@ -1,5 +1,5 @@
 const eTag = '',
-	variant = 'cloudflare.mjs', // support variants for Cloudflare, Node, etc. All variants can be housed in the same repo, and updated, hopefully minimizing custom variations per project
+	variant = 'node.mjs', // support variants for Cloudflare, Node, etc. All variants can be housed in the same repo, and updated, hopefully minimizing custom variations per project
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
 	npmGlobal = await import('node:child_process')
 		.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
@@ -61,7 +61,7 @@ const cfg = [
 	{
 		files: ['**/*.js', '**/*.mjs'],
 		languageOptions: {
-			globals: { ...(await importFallback('globals/index.js')).default?.browser }
+			globals: { ...(await importFallback('globals/index.js')).default?.nodeBuiltin }
 		},
 		rules: await git('rules/javascript.jsonc'),
 	},
