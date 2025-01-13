@@ -95,7 +95,7 @@ const cfg = [
 		if (!html) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
 		const rules = await git('rules/html.jsonc');
 		cfg.push({
-			files: ['**/*.html'], language: 'html/html', rules, plugins: { '@html-eslint': html },
+			files: ['**/*.html'], rules, plugins: { '@html-eslint': html },
 			languageOptions: { parser: (await importFallback('@html-eslint/parser/lib/index.js')).default },
 		});
 	});
