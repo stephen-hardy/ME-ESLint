@@ -52,7 +52,7 @@ const npmGlobal = await import('node:child_process')
 			.then(m => console.info(`Loaded (import=global): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => { // local and global import failed. Log an error, suggesting an npm (global) install, but return empty objects in the hope that linting might continue
 				console.error(`Failed import: ${x} - is it installed locally OR globally?`);
-				return { default: {} }; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
+				return {}; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
 			});
 	}
 const cfg = [
@@ -60,7 +60,7 @@ const cfg = [
 		files: ['**/*.js', '**/*.mjs'],
 		languageOptions: {
 			globals: {
-				...(await importFallback('globals/index.js')).default.browser
+				...(await importFallback('globals/index.js')).default?.browser
 				// ...globals.nodeBuiltin
 			}
 		},
