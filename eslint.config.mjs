@@ -91,9 +91,12 @@ const cfg = [
 		const rules = await git('rules/css.jsonc');
 		cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules });
 	});
-	await importFallback('@html-eslint/eslint-plugin/dist/esm/index.js').then(async ({ default: html }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+	await importFallback('@html-eslint/eslint-plugin/lib/index.js').then(async ({ default: html }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
 		if (!html) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
 		const rules = await git('rules/html.jsonc');
-		cfg.push({ files: ['**/*.html'], plugins: { html }, language: 'html/html', rules });
+		cfg.push({
+			files: ['**/*.html'], language: 'html/html', rules, plugins: { '@html-eslint': html },
+			languageOptions: { parser: (await importFallback('@html-eslint/parser/lib/index.js')).default },
+		});
 	});
 export default cfg;

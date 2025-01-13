@@ -1,8 +1,8 @@
 /* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
 /* https://github.com/eslint/css?tab=readme-ov-file#rules */
 {
-	"no-duplicate-imports": "error", /* R:1 - Disallow duplicate @import rules */
-	"no-empty-blocks": "error", /* R:1 - Disallow empty blocks */
-	"no-invalid-at-rules": "error", /* R:1 - Disallow invalid at-rules */
-	"no-invalid-properties": "error" /* R:1 - Disallow invalid properties */
+	"css/no-duplicate-imports": "error", /* R:1 - Disallow duplicate @import rules */
+	"css/no-empty-blocks": "error", /* R:1 - Disallow empty blocks */
+	"css/no-invalid-at-rules": "error", /* R:1 - Disallow invalid at-rules */
+	"css/no-invalid-properties": "error" /* R:1 - Disallow invalid properties */
 }
