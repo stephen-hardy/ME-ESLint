@@ -1,13 +1,15 @@
-const npmGlobal = await import('node:child_process')
-	.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
-	.then(({ stdout, stderr, error }) => {
-		if (stderr || error) { throw new Error(stderr || error); }
-		console.info(`npmGlobal = ${stdout}`);
-		return stdout;
-	})
-	.catch(err => console.error('Unable to get npmGlobal', err));
+const eTag = '',
+	variant = 'eslint.config.mjs',
+	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
+	npmGlobal = await import('node:child_process')
+		.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
+		.then(({ stdout, stderr, error }) => {
+			if (stderr || error) { throw new Error(stderr || error); }
+			console.info(`npmGlobal = ${stdout}`);
+			return stdout;
+		})
+		.catch(err => console.error('Unable to get npmGlobal', err));
 // UTILITIES: git(), importFallback(), getJson(), saveTemp(), getTemp()
-	const gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/sh-eslint/refs/heads/main/'; // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
 	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder of name "sh-eslint"
 		const [fs, os, path] = await Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]),
 			dir = path.join(os.tmpdir(), 'sh-eslint');
@@ -100,3 +102,11 @@ const cfg = [
 		});
 	});
 export default cfg;
+// auto update
+	fetch(gitRepo + variant).then(async r => {
+		const newETag = r.headers.get('eTag');
+		if (eTag === newETag) { return; }
+		console.info('Update config.mjs to ' + newETag);
+		const txt = await r.text(), { writeFile } = await import('node:fs/promises');
+		await writeFile('test.txt', txt.replace(/eTag = ".+/g, `eTag = "${newETag}"`));
+	});
