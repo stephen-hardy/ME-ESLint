@@ -1,7 +1,25 @@
-"overrides": [{ "files": ["*.test.js"], "env": { "jest": true } }]
-
-"parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },
-
-"env": { "es2021": true, "browser": true },
-
-"no-inner-declarations": ["error", "both"],
+should use these considerations? should comment if not
+	"overrides": [{ "files": ["*.test.js"], "env": { "jest": true } }]
+	"parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },
+	"env": { "es2021": true, "browser": true },
+Rules to evaluate - error, warn, or put in an unused section with comments explaining each
+	"no-inner-declarations": ["error", "both"],
+	"no-async-promise-executor": "error",
+	"no-promise-executor-return": "error",
+	"no-return-await": "error",
+	"prefer-promise-reject-errors": "warn",
+	"no-await-in-loop": "warn",
+	"prefer-const": "warn",
+	"no-param-reassign": "warn"
+	"no-empty": ["error", { "allowEmptyCatch": true }],
+	"func-names": ["error", "always"],
+	"no-console": "warn",
+	"no-shadow": [
+		"warn",
+		{
+			"builtinGlobals": true,
+			"hoist": "all",
+			"allow": ["_", "name", "status"]
+		}
+	],
+	"func-names": ["warn", "as-needed"],
