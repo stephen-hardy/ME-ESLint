@@ -42,10 +42,13 @@
 		"@html-eslint/require-input-label": "error", /* Enforces use of label for form elements(input, textarea, select) */
 		"@html-eslint/require-meta-viewport": "error", /* Enforce to use <meta name="viewport"> in <head> */
 	/* Style */
-		"@html-eslint/attrs-newline": "error", /* ⭐🔧: Enforce newline between attributes */
+		"@html-eslint/attrs-newline": ["error", { /* ⭐🔧: Enforce newline between attributes */
+			"closeStyle": "sameline", // "sameline" | "newline" - Default `"newline"`
+			"ifAttrsMoreThan": 4 // Default `2`
+		}],
 		"@html-eslint/element-newline": "error", /* ⭐🔧: Enforce newline between elements */
 		"@html-eslint/id-naming-convention": "error", /* Enforce consistent naming id attributes */
-		"@html-eslint/indent": "error", /* ⭐🔧: Enforce consistent indentation */
+		"@html-eslint/indent": ["error", "tab"], /* ⭐🔧: Enforce consistent indentation */
 		"@html-eslint/lowercase": "error", /* 🔧: Enforce to use lowercase for tag and attribute names. */
 		"@html-eslint/no-extra-spacing-attrs": "error", /* ⭐🔧: Disallow an extra spacing around attributes */
 		"@html-eslint/no-multiple-empty-lines": "error", /* 🔧: Disallow multiple empty lines */
