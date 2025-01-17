@@ -43,8 +43,8 @@
 		"@html-eslint/require-meta-viewport": "error", /* Enforce to use <meta name="viewport"> in <head> */
 	/* Style */
 		"@html-eslint/attrs-newline": ["error", { /* ⭐🔧: Enforce newline between attributes */
-			"closeStyle": "sameline", // "sameline" | "newline" - Default `"newline"`
-			"ifAttrsMoreThan": 4 // Default `2`
+			"closeStyle": "sameline", /* "sameline" | "newline" - Default `"newline"` */
+			"ifAttrsMoreThan": 4 /* Default `2` */
 		}],
 		"@html-eslint/element-newline": "error", /* ⭐🔧: Enforce newline between elements */
 		"@html-eslint/id-naming-convention": "error", /* Enforce consistent naming id attributes */
