@@ -1,4 +1,4 @@
-const eTag = 'W/"516c5a4063301b924b8e26046ad62db6dc046d7982e3b45ffc7db8904b0c315c"',
+const eTag = '',
 	variant = 'cloudflare.mjs', // support variants for Cloudflare, Node, etc. All variants can be housed in the same repo, and updated, hopefully minimizing custom variations per project
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
 	npmGlobal = await import('node:child_process')
@@ -61,10 +61,7 @@ const cfg = [
 	{
 		files: ['**/*.js', '**/*.mjs'],
 		languageOptions: {
-			globals: {
-				...(await importFallback('globals/index.js')).default?.browser
-				// ...globals.nodeBuiltin
-			}
+			globals: { ...(await importFallback('globals/index.js')).default?.browser }
 		},
 		rules: await git('rules/javascript.jsonc'),
 	},
@@ -105,8 +102,8 @@ export default cfg;
 // auto update
 	fetch(gitRepo + variant).then(async r => {
 		const newETag = r.headers.get('eTag');
-		if (eTag === newETag) { console.info('config.mjs: template up to date'); return; }
+		if (eTag === newETag) { console.info('config.mjs: template up-to-date'); return; }
 		console.info('config.mjs: update template to ' + newETag);
 		const txt = await r.text(), { writeFile } = await import('node:fs/promises');
-		await writeFile('eslint.config.mjs', txt.replace(/eTag = '.+/, `eTag = '${newETag}',`));
+		await writeFile(import.meta.filename, txt.replace(/eTag = '.+/, `eTag = '${newETag}',`));
 	});
