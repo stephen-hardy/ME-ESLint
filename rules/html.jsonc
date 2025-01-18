@@ -16,7 +16,6 @@
 		"@html-eslint/no-restricted-attrs": "error", /* Disallow specified attributes */
 			/* { tagPatterns: ["^div$", "^img$"], attrPatterns: ["data-.*"], message: "'data-x' is restricted.", }, */
 		"@html-eslint/no-script-style-type": "error", /* 🔧: Enforce to omit type attributes for style sheets and scripts */
-		"@html-eslint/no-target-blank": "error", /* Disallow usage of unsafe target='_blank' */
 		"@html-eslint/prefer-https": "error", /* Prefer to use HTTPS for embedded resources */
 		"@html-eslint/require-attrs": "error", /* Require specified attributes */
 			/* { tag: "img", attr: "alt", }, */
@@ -75,4 +74,7 @@
 			"error",
 			{ "priority": ["id", "type", "class", "style"] }
 		]
+	/* Unused */
+		/* "@html-eslint/no-target-blank": "error", Disallow usage of unsafe target='_blank' */
+			/* this should not be unsafe anymore, as all browser default behavior has changed - https://chromestatus.com/feature/6140064063029248 */
 }
