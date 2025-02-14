@@ -72,7 +72,7 @@
 		"@html-eslint/quotes": "error", /* ⭐🔧: Enforce consistent quoting attributes with double(") or single(') */
 		"@html-eslint/sort-attrs": [ /* 🔧: Enforce attributes alphabetical sorting */
 			"error",
-			{ "priority": ["id", "type", "class", "style"] }
+			{ "priority": ["type", "id", "name", "class", "style"] }
 		]
 	/* Unused */
 		/* "@html-eslint/no-target-blank": "error", Disallow usage of unsafe target='_blank' */
