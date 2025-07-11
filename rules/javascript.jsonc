@@ -109,7 +109,7 @@
 		"no-var": "error",
 		"no-throw-literal": "error",
 		"no-async-promise-executor": "error",
-		"no-promise-executor-return": "error",
+		"no-promise-executor-return": ["error", { "allowVoid": true }],
 		"no-return-await": "error",
 	/* WARNs */
 		"prefer-promise-reject-errors": "warn",
