@@ -1,0 +1,3 @@
+#!/bin/sh
+cp edit.mjs eslint.config.mjs
+git add eslint.config.mjs

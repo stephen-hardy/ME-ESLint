@@ -1,12 +1,12 @@
 const eTag = '',
-	variant = 'cloudflare.mjs', // support variants for Cloudflare, Node, etc. All variants can be housed in the same repo, and updated, hopefully minimizing custom variations per project
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
 	npmGlobal = await import('node:child_process')
 		.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
 		.then(({ stdout, stderr, error }) => {
 			if (stderr || error) { throw new Error(stderr || error); }
-			console.info(`npmGlobal = ${stdout}`);
-			return stdout;
+			const trimmed = stdout.trim();
+			console.info(`npmGlobal = ${trimmed}`);
+			return trimmed;
 		})
 		.catch(err => console.error('Unable to get npmGlobal', err));
 // UTILITIES: git(), importFallback(), getJson(), saveTemp(), getTemp()
@@ -50,18 +50,28 @@ const eTag = '',
 	async function importFallback(x) {
 		return import(x)
 			.then(m => console.info(`Loaded (import=local): ${x} (keys: ${Object.keys(m)})`) || m)
-			.catch(_ => import(`${npmGlobal}/${x}`)) // try import under the npm global directory
+			.catch(_ => import(`file://${npmGlobal}/${x}`)) // try import under the npm global directory
 			.then(m => console.info(`Loaded (import=global): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => { // local and global import failed. Log an error, suggesting an npm (global) install, but return empty objects in the hope that linting might continue
 				console.error(`Failed import: ${x} - is it installed locally OR globally?`);
 				return {}; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
 			});
 	}
+	async function detectEnv() {
+		const fs = await import('node:fs/promises');
+		try {
+			await fs.access('wrangler.json');
+			return 'browser';
+		}
+		catch {
+			return 'nodeBuiltin';
+		}
+	}
 const cfg = [
 	{
 		files: ['**/*.js', '**/*.mjs'],
 		languageOptions: {
-			globals: { ...(await importFallback('globals/index.js')).default?.browser }
+			globals: { ...(await importFallback('globals/index.js')).default?.[await detectEnv()] }
 		},
 		rules: await git('rules/javascript.jsonc'),
 	},
@@ -85,9 +95,13 @@ const cfg = [
 		const rules = await git('rules/markdown.jsonc');
 		cfg.push({ files: ['**/*.md'], plugins: { markdown }, language: 'markdown/commonmark', rules });
 	});
-	await importFallback('@eslint/css/dist/esm/index.js').then(async ({ default: css }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+	await importFallback('@eslint/css/dist/index.js').then(async ({ default: css }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
 		if (!css) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
-		const rules = await git('rules/css.jsonc');
+		let rules = await git('rules/css.jsonc');
+		if (rules['css/require-baseline'] && !css.rules['require-baseline'] && css.rules['use-baseline']) { // workaround for rule name change in @eslint/css
+			rules['css/use-baseline'] = rules['css/require-baseline'];
+			delete rules['css/require-baseline'];
+		}
 		cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules });
 	});
 	await importFallback('@html-eslint/eslint-plugin/lib/index.js').then(async ({ default: html }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
@@ -100,7 +114,7 @@ const cfg = [
 	});
 export default cfg;
 // auto update
-	fetch(gitRepo + variant).then(async r => {
+	fetch(gitRepo + 'eslint.config.mjs').then(async r => {
 		const newETag = r.headers.get('eTag');
 		if (eTag === newETag) { console.info('config.mjs: template up-to-date'); return; }
 		console.info('config.mjs: update template to ' + newETag);
