@@ -1,4 +1,5 @@
 // --- CONFIGURATION & GLOBAL STATE ---
+let cacheDirPromise = null; // Singleton prevents a race condition where multiple async calls try to create the cache dir simultaneously
 const eTag = '', // Tracks the currently installed version hash for the self-update mechanism to avoid unnecessary file writes
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // Defines the single source of truth for remote rulesets, centralizing rule management across projects
 	npmGlobalCached = await getTemp('npmGlobal.txt'), // Caching avoids the ~500ms+ penalty of shelling out to npm on every ESLint run
@@ -27,10 +28,13 @@ const eTag = '', // Tracks the currently installed version hash for the self-upd
 if (npmGlobalCached) { console.info(`npmGlobal (cached) = ${npmGlobal}`); } // Verifies the cache is actually being hit for performance debugging
 
 // --- UTILITIES ---
-let cacheDirPromise = null; // Singleton prevents a race condition where multiple async calls try to create the cache dir simultaneously
 async function getCacheDir() { // Encapsulates the directory path logic so we only compute and create it once per execution
 	if (cacheDirPromise) { return cacheDirPromise; } // Return existing promise to ensure we don't duplicate fs operations
-	cacheDirPromise = Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]).then(async ([fs, os, path]) => { // Lazy-load modules only when cache is first needed to speed up initial boot
+	cacheDirPromise = Promise.all([
+		import('node:fs/promises'),
+		import('node:os'),
+		import('node:path')]
+	).then(async ([fs, os, path]) => { // Lazy-load modules only when cache is first needed to speed up initial boot
 		const dir = path.join(os.homedir(), '.cache', 'sh-eslint'); // Use home directory instead of OS temp to persist across reboots, and instead of project dir to avoid cluttering git
 		await fs.mkdir(dir, { recursive: true }).catch(() => false); // Ensure the folder exists, ignoring errors (like it already existing) to avoid crashes
 		return dir; // Provide the resolved path back to the caller
@@ -39,10 +43,10 @@ async function getCacheDir() { // Encapsulates the directory path logic so we on
 }
 
 async function saveTemp(file, content) { // Centralized function for writing cache files to ensure consistent atomic writes
-	const [fs, path, crypto] = await Promise.all([import('node:fs/promises'), import('node:path'), import('node:crypto')]), // Lazy load fs, path, and crypto for performance
+	const [fs, path, nodeCrypto] = await Promise.all([import('node:fs/promises'), import('node:path'), import('node:crypto')]), // Lazy load fs, path, and crypto for performance
 		dir = await getCacheDir(), // Ensure the destination directory exists before we try to write
 		filePath = path.join(dir, file), // Construct the final destination path
-		tempPath = filePath + '.tmp' + crypto.randomBytes(8).toString('hex'); // Use crypto for a random suffix to prevent collisions if multiple ESLint processes run simultaneously
+		tempPath = filePath + '.tmp' + nodeCrypto.randomBytes(8).toString('hex'); // Use crypto for a random suffix to prevent collisions if multiple ESLint processes run simultaneously
 
 	try {
 		await fs.writeFile(tempPath, content); // Write to a temp file first to prevent corruption if the process crashes mid-write

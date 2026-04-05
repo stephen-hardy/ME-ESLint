@@ -3,9 +3,13 @@
 // To migrate, run this file directly (e.g., `node eslint.config.mjs`). It will fetch the latest unified config (eslint.config.mjs)
 // from the repository and overwrite itself.
 
-const gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/';
+const gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/',
+	filename = import.meta.filename.split('/').pop();
 
-console.warn(`\x1b[33m[WARNING] ${import.meta.filename.split('/').pop()} is deprecated. Please run 'node ${import.meta.filename.split('/').pop()}' to migrate to the unified configuration.\x1b[0m`);
+console.warn(
+	`\x1b[33m[WARNING] ${filename} is deprecated. `
+	+ `Please run 'node ${filename}' to migrate to the unified configuration.\x1b[0m`
+);
 
 if (process.argv[1] === import.meta.filename) {
 	fetch(gitRepo + 'eslint.config.mjs')
