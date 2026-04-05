@@ -3,3 +3,4 @@
 1. **Source of Truth for Config:** `edit.mjs` is the source of truth for the ESLint configuration in this repository. ALWAYS make edits to `edit.mjs` instead of `eslint.config.mjs`.
 2. **Commit Hook Magic:** `eslint.config.mjs` only exists in this repository as a client of itself (to lint this repo). On commit, a git hook copies `edit.mjs` to `eslint.config.mjs`. `edit.mjs` becomes `eslint.config.mjs` on GitHub, which other repositories then pull from.
 3. **DO NOT edit `eslint.config.mjs` directly in this repository.** All changes to the ESLint configuration logic must be done in `edit.mjs`.
+4. **Global Module Resolution Assumption:** This project assumes `npm` is the package manager for global fallback logic (`npm root -g`). This is an accepted design choice.

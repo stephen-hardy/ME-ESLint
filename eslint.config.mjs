@@ -68,19 +68,21 @@ const eTag = '',
 			return parsed;
 		}
 		catch (err) {
-			console.error(`Error loading ${url}, falling back to empty object`);
+			process.exitCode = 1;
+			console.error(`\x1b[31m[ERROR]\x1b[0m Loading ${url} failed, falling back to empty object. (Lint results may be incomplete)`);
 			console.error(err);
 			return {}; // if there is an error, return an empty object in hopes that linting might continue
 		}
 	} // NOTE: because single-line comment syntax ("//") is not uncommonly used outside of comments (ex: https://...), it isn't practical to strip those without a dedicated parser. Part of the goal with global eslint and web-hosted rules is to minimize setup and file duplication. Therefore, adding a JSONC parser dependency just to support single-line syntax - when we can get multi-line syntax cheaply - doesn't make a lot of sense
 	async function git(file) { return getJson(gitRepo + file); }
-	async function importFallback(x) {
+	async function importFallback(x) { // try to import a module locally, falling back to the npm global directory if not found. NOTE: this bypasses standard Node resolution and assumes npm is the global package manager.
 		return import(x)
 			.then(m => console.info(`Loaded (import=local): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => import(`file://${npmGlobal}/${x}`)) // try import under the npm global directory
 			.then(m => console.info(`Loaded (import=global): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => { // local and global import failed. Log an error, suggesting an npm (global) install, but return empty objects in the hope that linting might continue
-				console.error(`Failed import: ${x} - is it installed locally OR globally?`);
+				process.exitCode = 1;
+				console.error(`\x1b[31m[ERROR]\x1b[0m Failed to import: ${x}. (Ensure it's installed locally or globally via npm)`);
 				return {}; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
 			});
 	}

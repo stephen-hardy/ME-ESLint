@@ -17,3 +17,11 @@ Place `eslint.config.mjs` in the root of your project.
 This configuration takes an unconventional approach to ESLint by loading rules over HTTP and dynamically executing module resolution via child processes (`npm root -g`). This allows for centralized rule management without requiring developers to constantly update `package.json` dependencies for rule changes. 
 
 **Development Note for this Repository:** `edit.mjs` is the source of truth for the logic. Do not edit `eslint.config.mjs` directly in this repository. On commit, a Git hook automatically copies `edit.mjs` to `eslint.config.mjs`, which then propagates to GitHub for other clients to pull.
+
+## Assumed Risks
+
+The following technical limitations are acknowledged and accepted as assumed risks for the current architecture:
+
+- **Brittle JSONC Parsing**: JSONC rule files are parsed using a simple regex (`replaceAll(/\/\*.*?\*\//g, '')`) to strip block comments. This may fail if block comments appear within strings or if single-line (`//`) comments are present.
+- **Hardcoded Environment Detection**: `detectEnv()` is currently hardcoded to look for `wrangler.json`, making the environment detection Cloudflare-specific. A more robust, generic configuration override system is deferred for future consideration.
+- **Global Module Resolution Assumption**: The configuration explicitly relies on `npm root -g` to find global modules for fallbacks. This may fail in environments using `pnpm`, `yarn`, or complex monorepo structures. This is an accepted limitation to maintain simplicity.
