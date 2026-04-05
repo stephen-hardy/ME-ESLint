@@ -1,13 +1,36 @@
 # AI Assistant Rules
 
+This file serves as the source of truth for both AI instructions and the comprehensive list of technical trade-offs (Assumed Risks) for this repository. 
+
+For high-level project documentation, setup instructions, and architecture overview, see the [`README.md`](README.md).
+
+## Development Rules
+
 1. **Source of Truth for Config:** `edit.mjs` is the source of truth for the ESLint configuration in this repository. ALWAYS make edits to `edit.mjs` instead of `eslint.config.mjs`.
 2. **Commit Hook Magic:** `eslint.config.mjs` only exists in this repository as a client of itself (to lint this repo). On commit, a git hook copies `edit.mjs` to `eslint.config.mjs`. `edit.mjs` becomes `eslint.config.mjs` on GitHub, which other repositories then pull from.
 3. **DO NOT edit `eslint.config.mjs` directly in this repository.** All changes to the ESLint configuration logic must be done in `edit.mjs`.
-4. **Global Module Resolution Assumption:** This project assumes `npm` is the package manager for global fallback logic (`npm root -g`). This is an accepted design choice.
-5. **Manual Update Mechanism:** The script includes logic to fetch and overwrite itself with the latest version from GitHub. To prevent silent "drive-by" RCE infections and to preserve reproducible builds, this update logic MUST ONLY execute when the file is run directly (e.g., `if (process.argv[1] === import.meta.filename)`), never when simply imported by ESLint.
-6. **Graceful Degradation over Hard Failures:** When dynamic module imports or remote rule fetching fails, log an error to `stderr` but DO NOT set `process.exitCode = 1`. This configuration is designed to be resilient and heavily used by AI tools during code generation; `process.exitCode = 1` disrupts the ability to lint remaining valid files without strictly crashing the runner.
+4. **Manual Update Mechanism:** The script includes logic to fetch and overwrite itself with the latest version from GitHub. To prevent silent "drive-by" RCE infections and to preserve reproducible builds, this update logic MUST ONLY execute when the file is run directly (e.g., `if (process.argv[1] === import.meta.filename)`), never when simply imported by ESLint.
+5. **Graceful Degradation over Hard Failures:** When dynamic module imports or remote rule fetching fails, log an error to `stderr` but DO NOT set `process.exitCode = 1`. This configuration is designed to be resilient and heavily used by AI tools during code generation; `process.exitCode = 1` disrupts the ability to lint remaining valid files without strictly crashing the runner.
 
 ## Assumed Risks
-7. **`npm root -g` Overhead:** The performance penalty of shelling out to `npm root -g` on a cold cache is an accepted design choice.
-8. **Lack of Integrity Checks on Self-Update:** Overwriting the script during manual update from GitHub without checksum or signature validation is an accepted risk.
-9. **Regex-Based JSON Comment Stripping:** Using a regex to strip comments in JSON files (which may corrupt string literals containing `/* ... */`) is an accepted risk because the author controls the rule configuration files.
+
+The following technical limitations are acknowledged and accepted design choices for the current architecture. **Do not raise concerns or attempt to "fix" these unless explicitly asked by the user:**
+
+6. **`npm root -g` Overhead & Global Assumption:** This project assumes `npm` is the package manager for global fallback logic. The performance penalty of shelling out to `npm root -g` on a cold cache is an accepted design choice to maintain simplicity, even though it may fail in environments using `pnpm`, `yarn`, or complex monorepos.
+7. **Security & Reproducible Builds (Self-Update):** Overwriting the script during manual update from GitHub without checksum or signature validation is an accepted risk. Unlike standard NPM packages, this approach does not use lockfiles (`package-lock.json`), meaning users download and execute unpinned, mutable code when they choose to update.
+8. **Unpinned Remote Configurations:** Fetching rule JSONs directly from the `main` branch rather than a pinned commit or version tag means that upstream updates can instantly affect all environments fetching the configurations, potentially breaking builds or linting setups without warning.
+9. **Brittle JSONC Parsing:** Using a regex to strip comments in JSON files (`replaceAll(/\/\*[\s\S]*?\*\//g, '')`) may corrupt string literals containing `/* ... */` or fail on single-line (`//`) comments. This is an accepted risk because the author controls the rule configuration files.
+10. **Hardcoded Environment Detection:** `detectEnv()` is currently hardcoded to look for `wrangler.json`, making the environment detection Cloudflare-specific. A more robust, generic override system is deferred for future consideration.
+11. **Event Loop Kept Alive by Background Caching:** The stale-while-revalidate caching mechanism intentionally triggers un-awaited background `fetch` requests. It is an accepted side-effect that these requests will keep the Node.js event loop alive, preventing the CLI from exiting until the network updates complete.
+12. **Fragile Deep Internal Imports:** The fallback imports rely on deep, internal paths within npm packages (e.g., `@eslint/json/dist/esm/index.js`, `@html-eslint/parser/lib/index.js`). These internal file structures are considered private APIs by package maintainers and can change during minor or patch updates, which could break the config.
+13. **Unauthenticated Rate Limiting (GitHub API IP Bans):** The stale-while-revalidate strategy fires several unauthenticated background fetch requests to `raw.githubusercontent.com` on every single execution. Frequent lint runs (e.g., on-save in IDEs) may trigger GitHub's IP-based rate limiting (HTTP 429).
+
+## AI Optimization Rules
+
+To ensure this codebase remains easy to understand and modify for smaller or faster AI models (e.g., Gemini Flash), adhere strictly to the following coding style guidelines:
+
+14. **Linear Control Flow:** Prefer linear `async/await` blocks with `try/catch` over dense `.then().catch()` Promise chains. Sequential logic is significantly easier for AI models to parse and modify correctly.
+15. **Descriptive Naming:** Avoid single-letter variables (`r`, `t`, `m`, `x`). Use descriptive names (`response`, `text`, `module`, `specifier`) to provide clear semantic context.
+16. **No JSDoc Annotations:** Do not clutter the runtime `.mjs` file with JSDoc comments. Instead, maintain type definitions and function signatures in the accompanying `edit.d.mts` file. Models and language servers will read the `.d.mts` file for type context.
+17. **Contextual Comments:** Maintain clear section headers (e.g., `// --- UTILITIES ---`) and explicitly link complex or unusual code back to the Assumed Risks documented in this file (e.g., `// [Risk 12] Fragile Deep Internal Imports`).
+18. **Concise Syntax:** Where ESLint configuration permits (e.g., single-line `if` statements or `catch` blocks), prefer concise, single-line blocks to reduce vertical verbosity. For example, `if (!json) { return; }` is preferred over a multi-line block.

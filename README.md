@@ -20,16 +20,14 @@ To migrate legacy clients securely, the `cloudflare.mjs` and `node.mjs` files in
 
 ## Note on Architecture
 
-This configuration takes an unconventional approach to ESLint by loading rules over HTTP and dynamically executing module resolution via child processes (`npm root -g`). This allows for centralized rule management without requiring developers to constantly update `package.json` dependencies for rule changes. 
+This configuration takes an unconventional approach to ESLint by loading rules over HTTP and dynamically executing module resolution via child processes (`npm root -g`). This allows for centralized rule management without requiring developers to constantly update `package.json` dependencies for rule changes.
+
+**Dynamic Module Resolution Context:** To remain resilient across different environments, the script uses a custom `importFallback()` function. It first attempts a standard dynamic `import(specifier)`. If that fails, it assumes the plugin might be installed globally and falls back to `import('file://${npmGlobal}/${specifier}')`. Furthermore, the final `cfg` array exported to ESLint is built dynamically using `Promise.all` and asynchronous IIFEs (Immediately Invoked Function Expressions). This structure guarantees that if an optional plugin (like `@eslint/markdown`) fails to load, it simply skips pushing that specific configuration block to the array, rather than crashing the entire linting process.
 
 **Development Note for this Repository:** `edit.mjs` is the source of truth for the logic. Do not edit `eslint.config.mjs` directly in this repository. On commit, a Git hook automatically copies `edit.mjs` to `eslint.config.mjs`, which then propagates to GitHub for other clients to pull.
 
-## Assumed Risks
+## Technical Trade-offs & Assumed Risks
 
-The following technical limitations are acknowledged and accepted as assumed risks for the current architecture:
+Because of its unconventional architecture, this project makes several intentional technical trade-offs (such as dynamic evaluation over HTTP, `npm root -g` fallbacks, unpinned configuration versions, and manual update requirements) to maintain simplicity.
 
-- **Brittle JSONC Parsing**: JSONC rule files are parsed using a simple regex (`replaceAll(/\/\*[\s\S]*?\*\//g, '')`) to strip block comments. This may fail if block comments appear within strings or if single-line (`//`) comments are present.
-- **Hardcoded Environment Detection**: `detectEnv()` is currently hardcoded to look for `wrangler.json`, making the environment detection Cloudflare-specific. A more robust, generic configuration override system is deferred for future consideration.
-- **Global Module Resolution Assumption**: The configuration explicitly relies on `npm root -g` to find global modules for fallbacks. This may fail in environments using `pnpm`, `yarn`, or complex monorepo structures. This is an accepted limitation to maintain simplicity.
-- **Security & Reproducible Builds**: Updates to the configuration script require a manual execution (`node eslint.config.mjs`). This intentional design mitigates "drive-by" Remote Code Execution (RCE) risks if the remote repository is compromised, and ensures your CI and local environments remain reproducible. However, unlike standard NPM packages, this approach does not use lockfiles (`package-lock.json`) or integrity hashes, meaning you are downloading and executing unpinned, mutable code when you choose to update.
-- **Unpinned Remote Configurations**: Fetching rules directly from the `main` branch rather than a pinned commit or version tag means that upstream updates can instantly affect all environments fetching the remote configurations without warning, potentially breaking builds or linting setups.
+For a comprehensive list of these assumed risks, known technical limitations, and the rules guiding AI assistants that contribute to this repository, please consult the [`.roorules`](.roorules) file.
