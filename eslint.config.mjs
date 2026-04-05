@@ -136,7 +136,7 @@ async function detectEnv() { // Heuristic to guess the project type so we inject
 	// [Risk 10] Hardcoded Environment Detection
 	const fs = await import('node:fs/promises'); // Lazy load fs
 	try {
-		await fs.access('wrangler.json'); // Cloudflare Workers use a specific config file; its presence is a strong signal
+		await fs.access('wrangler.jsonc'); // Cloudflare Workers use a specific config file; its presence is a strong signal
 		return 'browser'; // Workers use browser-like globals (fetch, Request) rather than Node globals (process, Buffer)
 	}
 	catch { return 'nodeBuiltin'; } // If no specific environment is detected, default to standard Node.js globals
