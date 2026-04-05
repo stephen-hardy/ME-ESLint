@@ -1,5 +1,4 @@
-# High Priority / Architectural Concerns
-1. [ ] **Remove Auto-Updating Logic:** The script overwrites itself (`import.meta.filename`) dynamically from GitHub. This is a severe security risk (RCE if repo is compromised), breaks reproducible builds, and causes unexpected changes during local development. Consider removing this and relying on standard NPM versioning or a separate CLI update tool.
+# AI Parking Lot
 
 # Original Rule Evaluation Items
 [ ] should use these considerations? should comment if not

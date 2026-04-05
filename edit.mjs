@@ -142,7 +142,8 @@ const cfg = [
 		});
 	});
 export default cfg;
-// auto update
+// manual update
+if (process.argv[1] === import.meta.filename) {
 	fetch(gitRepo + 'eslint.config.mjs').then(async r => {
 		const newETag = r.headers.get('eTag');
 		if (eTag === newETag) { console.info('config.mjs: template up-to-date'); return; }
@@ -150,3 +151,4 @@ export default cfg;
 		const txt = await r.text(), { writeFile } = await import('node:fs/promises');
 		await writeFile(import.meta.filename, txt.replace(/eTag = '.+/, `eTag = '${newETag}',`));
 	});
+}
