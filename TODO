@@ -8,7 +8,7 @@
 [ ] Rules to evaluate - error, warn, or put in an unused section with comments explaining each
 	"no-inner-declarations": ["error", "both"],
 	"no-async-promise-executor": "error",
-	"no-promise-executor-return": "error",
+	"no-promise-executor-return": "off",
 	"no-return-await": "error",
 	"prefer-promise-reject-errors": "warn",
 	"no-await-in-loop": "warn",

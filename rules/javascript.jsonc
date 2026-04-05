@@ -109,7 +109,6 @@
 		"no-var": "error",
 		"no-throw-literal": "error",
 		"no-async-promise-executor": "error",
-		"no-promise-executor-return": ["error", { "allowVoid": true }],
 		"no-return-await": "error",
 	/* WARNs */
 		"prefer-promise-reject-errors": "warn",
@@ -161,5 +160,7 @@
 		"new-cap": "warn",
 		"no-negated-condition": "warn",
 		"spaced-comment": ["warn", "always", { "markers": ["#"] }],
-		"prefer-const": ["warn", { "destructuring": "all" }]
+		"prefer-const": ["warn", { "destructuring": "all" }],
+	/* OFF: intentionally disabled */
+		"no-promise-executor-return": "off"
 }

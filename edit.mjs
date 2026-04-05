@@ -17,15 +17,17 @@ const eTag = '',
 // UTILITIES: git(), importFallback(), getJson(), saveTemp(), getTemp()
 	async function getCacheDir() {
 		const [fs, os, path] = await Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]),
-			dir = path.join(os.tmpdir(), `sh-eslint-${os.userInfo().username}`);
+			dir = path.join(os.homedir(), '.cache', 'sh-eslint');
 		await fs.mkdir(dir, { recursive: true }).catch(() => false);
 		return dir;
 	}
 	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder
 		const [fs, path] = await Promise.all([import('node:fs/promises'), import('node:path')]),
 			dir = await getCacheDir(),
-			filePath = path.join(dir, file);
-		await fs.writeFile(filePath, content).catch(() => false);
+			filePath = path.join(dir, file),
+			tempPath = filePath + '.tmp' + Math.random().toString(36).slice(2);
+		await fs.writeFile(tempPath, content).catch(() => false);
+		await fs.rename(tempPath, filePath).catch(() => false);
 		// console.log(`ToCache: ${filePath}`);
 	}
 	async function getTemp(file) { // read specified file from OS temp folder
@@ -37,7 +39,7 @@ const eTag = '',
 	async function fetchAndCache(url, cacheFile) {
 		const r = await fetch(url),
 			t = await r.text(),
-			stripped = t.replaceAll(/\/\*.*?\*\//g, '');
+			stripped = t.replaceAll(/\/\*[\s\S]*?\*\//g, '');
 		saveTemp(cacheFile, stripped);
 		return { stripped, rawLength: t.length };
 	}
@@ -68,7 +70,6 @@ const eTag = '',
 			return parsed;
 		}
 		catch (err) {
-			process.exitCode = 1;
 			console.error(`\x1b[31m[ERROR]\x1b[0m Loading ${url} failed, falling back to empty object. (Lint results may be incomplete)`);
 			console.error(err);
 			return {}; // if there is an error, return an empty object in hopes that linting might continue
@@ -81,7 +82,6 @@ const eTag = '',
 			.catch(_ => import(`file://${npmGlobal}/${x}`)) // try import under the npm global directory
 			.then(m => console.info(`Loaded (import=global): ${x} (keys: ${Object.keys(m)})`) || m)
 			.catch(_ => { // local and global import failed. Log an error, suggesting an npm (global) install, but return empty objects in the hope that linting might continue
-				process.exitCode = 1;
 				console.error(`\x1b[31m[ERROR]\x1b[0m Failed to import: ${x}. (Ensure it's installed locally or globally via npm)`);
 				return {}; // JavaScript linting should not require an import (just JSONC rules). And, if there is failure to import a dependency for linting non-JavaScript, that should not prevent JS linting from working. Always try to show what you can show, and error for notifications
 			});

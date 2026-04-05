@@ -3,7 +3,7 @@ A shared ESLint configuration approach designed to pull rules dynamically from a
 ## Features
 
 - **Dynamic Rule Loading**: Fetches ESLint rules (JSONC files) from a remote GitHub repository.
-- **Smart Caching**: Implements a "Stale-While-Revalidate" pattern that securely caches rules and global NPM paths in a user-isolated OS temporary folder (`os.tmpdir() + '/sh-eslint-' + username`). This ensures instant startup while updating in the background, avoiding shared CI permission errors.
+- **Smart Caching**: Implements a "Stale-While-Revalidate" pattern that securely caches rules and global NPM paths in a user-isolated OS home folder (`os.homedir() + '/.cache/sh-eslint'`). This ensures instant startup while updating in the background, avoiding shared CI permission errors.
 - **Global & Local Plugin Resolution**: Attempts to resolve ESLint plugins locally, and falls back to global NPM resolution if they are not found.
 - **Resilient Linting**: If a rule file or plugin fails to load, it will return an empty configuration object to allow linting of other file types to continue uninterrupted.
 - **Manual Updates**: The configuration script can be updated by running it directly (e.g., `node eslint.config.mjs`). It will check the remote `eTag` and pull the latest version if needed.
@@ -16,7 +16,7 @@ Place `eslint.config.mjs` in the root of your project.
 
 Previously, clients used separate `cloudflare.mjs` and `node.mjs` configuration files. These have been merged into a single, unified `eslint.config.mjs` that detects the environment dynamically. 
 
-To migrate legacy clients seamlessly, the `cloudflare.mjs` and `node.mjs` files in this repository have been replaced with minimal auto-migration scripts. When a legacy client imports either of these files for linting, the script will automatically fetch the new unified `eslint.config.mjs` and overwrite itself. This allows clients to seamlessly transition to the unified configuration without requiring manual intervention.
+To migrate legacy clients securely, the `cloudflare.mjs` and `node.mjs` files in this repository have been replaced with minimal migration scripts. When a legacy client imports either of these files for linting, a warning is emitted advising the user to migrate. To actually perform the migration, the user must run the file directly (e.g., `node eslint.config.mjs`). This will automatically fetch the new unified `eslint.config.mjs` and overwrite the legacy file, allowing clients to seamlessly transition to the unified configuration while mitigating "drive-by" remote code execution risks on import.
 
 ## Note on Architecture
 
@@ -28,7 +28,8 @@ This configuration takes an unconventional approach to ESLint by loading rules o
 
 The following technical limitations are acknowledged and accepted as assumed risks for the current architecture:
 
-- **Brittle JSONC Parsing**: JSONC rule files are parsed using a simple regex (`replaceAll(/\/\*.*?\*\//g, '')`) to strip block comments. This may fail if block comments appear within strings or if single-line (`//`) comments are present.
+- **Brittle JSONC Parsing**: JSONC rule files are parsed using a simple regex (`replaceAll(/\/\*[\s\S]*?\*\//g, '')`) to strip block comments. This may fail if block comments appear within strings or if single-line (`//`) comments are present.
 - **Hardcoded Environment Detection**: `detectEnv()` is currently hardcoded to look for `wrangler.json`, making the environment detection Cloudflare-specific. A more robust, generic configuration override system is deferred for future consideration.
 - **Global Module Resolution Assumption**: The configuration explicitly relies on `npm root -g` to find global modules for fallbacks. This may fail in environments using `pnpm`, `yarn`, or complex monorepo structures. This is an accepted limitation to maintain simplicity.
 - **Security & Reproducible Builds**: Updates to the configuration script require a manual execution (`node eslint.config.mjs`). This intentional design mitigates "drive-by" Remote Code Execution (RCE) risks if the remote repository is compromised, and ensures your CI and local environments remain reproducible. However, unlike standard NPM packages, this approach does not use lockfiles (`package-lock.json`) or integrity hashes, meaning you are downloading and executing unpinned, mutable code when you choose to update.
+- **Unpinned Remote Configurations**: Fetching rules directly from the `main` branch rather than a pinned commit or version tag means that upstream updates can instantly affect all environments fetching the remote configurations without warning, potentially breaking builds or linting setups.
