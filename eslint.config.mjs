@@ -22,12 +22,12 @@ const eTag = '',
 		return dir;
 	}
 	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder
-		const [fs, path] = await Promise.all([import('node:fs/promises'), import('node:path')]),
+		const [fs, path, crypto] = await Promise.all([import('node:fs/promises'), import('node:path'), import('node:crypto')]),
 			dir = await getCacheDir(),
 			filePath = path.join(dir, file),
-			tempPath = filePath + '.tmp' + Math.random().toString(36).slice(2);
-		await fs.writeFile(tempPath, content).catch(() => false);
-		await fs.rename(tempPath, filePath).catch(() => false);
+			tempPath = filePath + '.tmp' + crypto.randomBytes(8).toString('hex');
+		await fs.writeFile(tempPath, content).catch(err => console.warn(`\x1b[33m[WARNING]\x1b[0m Failed to write cache file ${tempPath}:`, err.message));
+		await fs.rename(tempPath, filePath).catch(err => console.warn(`\x1b[33m[WARNING]\x1b[0m Failed to rename cache file to ${filePath}:`, err.message));
 		// console.log(`ToCache: ${filePath}`);
 	}
 	async function getTemp(file) { // read specified file from OS temp folder
@@ -112,35 +112,37 @@ const cfg = [
 	// },
 ];
 // plugins
-	await importFallback('@eslint/json/dist/esm/index.js').then(async ({ default: json }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
-		if (!json) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
-		cfg.unshift({ plugins: { json } });
-		const rules = await git('rules/json.jsonc');
-		cfg.push({ files: ['**/*.json'], language: 'json/json', rules }); // lint JSON files
-		cfg.push({ files: ['**/*.jsonc', '.vscode/*.json'], language: 'json/jsonc', rules }); // lint JSONC files
-	});
-	await importFallback('@eslint/markdown/dist/esm/index.js').then(async ({ default: markdown }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
-		if (!markdown) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
-		const rules = await git('rules/markdown.jsonc');
-		cfg.push({ files: ['**/*.md'], plugins: { markdown }, language: 'markdown/commonmark', rules });
-	});
-	await importFallback('@eslint/css/dist/index.js').then(async ({ default: css }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
-		if (!css) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
-		let rules = await git('rules/css.jsonc');
-		if (rules['css/require-baseline'] && !css.rules['require-baseline'] && css.rules['use-baseline']) { // workaround for rule name change in @eslint/css
-			rules['css/use-baseline'] = rules['css/require-baseline'];
-			delete rules['css/require-baseline'];
-		}
-		cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules });
-	});
-	await importFallback('@html-eslint/eslint-plugin/lib/index.js').then(async ({ default: html }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
-		if (!html) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
-		const rules = await git('rules/html.jsonc');
-		cfg.push({
-			files: ['**/*.html'], rules, plugins: { '@html-eslint': html },
-			languageOptions: { parser: (await importFallback('@html-eslint/parser/lib/index.js')).default },
-		});
-	});
+	await Promise.all([
+		importFallback('@eslint/json/dist/esm/index.js').then(async ({ default: json }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+			if (!json) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+			cfg.unshift({ plugins: { json } });
+			const rules = await git('rules/json.jsonc');
+			cfg.push({ files: ['**/*.json'], language: 'json/json', rules }); // lint JSON files
+			cfg.push({ files: ['**/*.jsonc', '.vscode/*.json'], language: 'json/jsonc', rules }); // lint JSONC files
+		}),
+		importFallback('@eslint/markdown/dist/esm/index.js').then(async ({ default: markdown }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+			if (!markdown) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+			const rules = await git('rules/markdown.jsonc');
+			cfg.push({ files: ['**/*.md'], plugins: { markdown }, language: 'markdown/commonmark', rules });
+		}),
+		importFallback('@eslint/css/dist/index.js').then(async ({ default: css }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+			if (!css) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+			let rules = await git('rules/css.jsonc');
+			if (rules['css/require-baseline'] && !css.rules['require-baseline'] && css.rules['use-baseline']) { // workaround for rule name change in @eslint/css
+				rules['css/use-baseline'] = rules['css/require-baseline'];
+				delete rules['css/require-baseline'];
+			}
+			cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules });
+		}),
+		importFallback('@html-eslint/eslint-plugin/lib/index.js').then(async ({ default: html }) => { // don't use a "normal" import statement because it doesn't fallback to global, and will tank the whole process if unfound. Always lint as much as we can - never fail A because of an error in B
+			if (!html) { return; } // plugin not found. importFallback doesn't error, because we are trying to return some type of workable config at all costs. But, when the plugin isn't found json will be undefined
+			const rules = await git('rules/html.jsonc');
+			cfg.push({
+				files: ['**/*.html'], rules, plugins: { '@html-eslint': html },
+				languageOptions: { parser: (await importFallback('@html-eslint/parser/lib/index.js')).default },
+			});
+		})
+	]);
 export default cfg;
 // manual update
 if (process.argv[1] === import.meta.filename) {
