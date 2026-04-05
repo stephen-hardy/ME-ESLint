@@ -1,50 +1,77 @@
 const eTag = '',
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // PUBLIC github repository containing JSONC files we will pull/cache, to be incorporated in the default export array
-	npmGlobal = await import('node:child_process')
-		.then(({ exec }) => new Promise(res => { exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr })); }))
+	npmGlobalCached = await getTemp('npmGlobal.txt'),
+	npmGlobal = npmGlobalCached ? npmGlobalCached.trim() : await import('node:child_process')
+		.then(({ exec }) => new Promise(res => exec('npm root -g', (error, stdout, stderr) => res({ error, stdout, stderr }))))
 		.then(({ stdout, stderr, error }) => {
 			if (stderr || error) { throw new Error(stderr || error); }
 			const trimmed = stdout.trim();
-			console.info(`npmGlobal = ${trimmed}`);
+			saveTemp('npmGlobal.txt', trimmed);
+			console.info(`npmGlobal (cli) = ${trimmed}`);
 			return trimmed;
 		})
 		.catch(err => console.error('Unable to get npmGlobal', err));
+
+	if (npmGlobalCached) { console.info(`npmGlobal (cached) = ${npmGlobal}`); }
+
 // UTILITIES: git(), importFallback(), getJson(), saveTemp(), getTemp()
-	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder of name "sh-eslint"
+	async function getCacheDir() {
 		const [fs, os, path] = await Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]),
-			dir = path.join(os.tmpdir(), 'sh-eslint');
-		await fs.mkdir(dir, { recursive: true }); // create the temp folder for this "application"
-		const filePath = path.join(dir, file);
-		await fs.writeFile(filePath, content);
-		console.log(`ToCache: ${filePath}`);
+			dir = path.join(os.tmpdir(), `sh-eslint-${os.userInfo().username}`);
+		await fs.mkdir(dir, { recursive: true }).catch(() => false);
+		return dir;
+	}
+	async function saveTemp(file, content) { // cache specified content into a file of specified name, in an OS temp folder
+		const [fs, path] = await Promise.all([import('node:fs/promises'), import('node:path')]),
+			dir = await getCacheDir(),
+			filePath = path.join(dir, file);
+		await fs.writeFile(filePath, content).catch(() => false);
+		// console.log(`ToCache: ${filePath}`);
 	}
 	async function getTemp(file) { // read specified file from OS temp folder
-		const [fs, os, path] = await Promise.all([import('node:fs/promises'), import('node:os'), import('node:path')]),
-			filePath = path.join(os.tmpdir(), 'sh-eslint', file),
-			content = await fs.readFile(filePath, 'utf8');
-		if (content) { console.info(`FromCache: ${filePath} (len=${content.length})`); }
-		return content;
+		const [fs, path] = await Promise.all([import('node:fs/promises'), import('node:path')]),
+			dir = await getCacheDir(),
+			filePath = path.join(dir, file);
+		return fs.readFile(filePath, 'utf8').catch(() => null);
+	}
+	async function fetchAndCache(url, cacheFile) {
+		const r = await fetch(url),
+			t = await r.text(),
+			stripped = t.replaceAll(/\/\*.*?\*\//g, '');
+		saveTemp(cacheFile, stripped);
+		return { stripped, rawLength: t.length };
+	}
+	async function getCache(url, cacheFile, logURL) {
+		const cache = await getTemp(cacheFile);
+		if (!cache) { return null; }
+		try {
+			const parsed = JSON.parse(cache);
+			console.info(`Loaded (json=cache): ${logURL} (len=${cache.length},type=${typeof parsed})`);
+			// Background update (Stale-While-Revalidate)
+			fetchAndCache(url, cacheFile).catch(() => false);
+			return parsed;
+		}
+		catch {
+			return null;
+		}
 	}
 	async function getJson(url) { // fetch url, strip multi-line comments (syntax), return parsed JSON
-		const cacheFile = url.split('/').at(-1), logURL = url.startsWith(gitRepo) ? '[git]' + url.slice(gitRepo.length - 1) : url;
-		return fetch(url).then(r => r.text())
-			.then(t => {
-				const stripped = t.replaceAll(/\/\*.*?\*\//g, ''), parsed = JSON.parse(stripped); // remove ONLY multi-line comment syntax - cheap substitute for actual JSONC support, that doesn't require a dependency
-				saveTemp(cacheFile, stripped);
-				console.info(`Loaded (json=http): ${logURL} (len=${t.length},type=${typeof parsed})`);
-				return parsed;
-			})
-			.catch(async err => {
-				console.error(`Error loading ${url}, falling back to cache or empty object`);
-				console.error(err);
-				const cache = await getTemp(cacheFile);
-				if (cache) { // try cache for offline scenarios
-					const parsed = JSON.parse(cache);
-					console.info(`Loaded (json=cache): ${logURL} (len=${cache.length},type=${typeof parsed})`);
-					return parsed;
-				}
-				return {}; // if there is an error, return an empty object in hopes that linting might continue. The main rules JSONC may be essential for a given file type. However, there will likely be multiple file types linted, and failure in one shouldn't block functionality of another. Plus, there may be supplemental rules JSONC for overrides, and their failure shouldn't block what we do have from working
-			});
+		const cacheFile = url.split('/').at(-1), logURL = url.startsWith(gitRepo) ? '[git]' + url.slice(gitRepo.length - 1) : url,
+			cache = await getCache(url, cacheFile, logURL);
+
+		if (cache) { return cache; }
+
+		try {
+			const { stripped, rawLength } = await fetchAndCache(url, cacheFile),
+				parsed = JSON.parse(stripped); // remove ONLY multi-line comment syntax - cheap substitute for actual JSONC support, that doesn't require a dependency
+			console.info(`Loaded (json=http): ${logURL} (len=${rawLength},type=${typeof parsed})`);
+			return parsed;
+		}
+		catch (err) {
+			console.error(`Error loading ${url}, falling back to empty object`);
+			console.error(err);
+			return {}; // if there is an error, return an empty object in hopes that linting might continue
+		}
 	} // NOTE: because single-line comment syntax ("//") is not uncommonly used outside of comments (ex: https://...), it isn't practical to strip those without a dedicated parser. Part of the goal with global eslint and web-hosted rules is to minimize setup and file duplication. Therefore, adding a JSONC parser dependency just to support single-line syntax - when we can get multi-line syntax cheaply - doesn't make a lot of sense
 	async function git(file) { return getJson(gitRepo + file); }
 	async function importFallback(x) {

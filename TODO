@@ -1,8 +1,16 @@
-should use these considerations? should comment if not
+# High Priority / Architectural Concerns
+1. [ ] **Remove Auto-Updating Logic:** The script overwrites itself (`import.meta.filename`) dynamically from GitHub. This is a severe security risk (RCE if repo is compromised), breaks reproducible builds, and causes unexpected changes during local development. Consider removing this and relying on standard NPM versioning or a separate CLI update tool.
+2. [ ] **Fix Silent Failures:** `importFallback` and `getJson` returning `{}` on failure means developers will think linting passed when it actually failed to load the rules or plugins. Add explicit errors or warnings.
+3. [ ] **Use a Proper JSONC Parser:** `t.replaceAll(/\/\*.*?\*\//g, '')` is very brittle. It fails if block comments are inside strings, and crashes `JSON.parse` if single-line `//` comments exist. 
+4. [ ] **Refactor Environment Detection:** `detectEnv()` hardcodes looking for `wrangler.json`. This makes the config Cloudflare-specific. Consider a more robust way to configure globals (e.g., standard ESLint config overrides).
+5. [ ] **Fix Global Module Resolution:** `file://${npmGlobal}/...` bypasses Node's standard resolution and may break in pnpm, yarn, or monorepo setups.
+
+# Original Rule Evaluation Items
+[ ] should use these considerations? should comment if not
 	"overrides": [{ "files": ["*.test.js"], "env": { "jest": true } }]
 	"parserOptions": { "sourceType": "module", "ecmaVersion": 2022 },
 	"env": { "es2021": true, "browser": true },
-Rules to evaluate - error, warn, or put in an unused section with comments explaining each
+[ ] Rules to evaluate - error, warn, or put in an unused section with comments explaining each
 	"no-inner-declarations": ["error", "both"],
 	"no-async-promise-executor": "error",
 	"no-promise-executor-return": "error",
