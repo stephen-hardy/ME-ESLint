@@ -1,3 +1,9 @@
+// --- DEPENDENCIES ---
+// To install or update all required packages (can be installed locally, or globally with -g):
+// npm i globals @eslint/json @eslint/markdown @eslint/css @html-eslint/eslint-plugin @html-eslint/parser
+// To force everything to update to the absolute latest versions, append @latest to each:
+// npm i globals@latest @eslint/json@latest @eslint/markdown@latest @eslint/css@latest @html-eslint/eslint-plugin@latest @html-eslint/parser@latest
+
 // --- CONFIGURATION & GLOBAL STATE ---
 let cacheDirPromise = null; // Singleton prevents a race condition where multiple async calls try to create the cache dir simultaneously
 const eTag = '', // Tracks the currently installed version hash for the self-update mechanism to avoid unnecessary file writes
@@ -113,7 +119,6 @@ async function getJson(url) { // Main entrypoint for loading configuration JSONs
 async function git(file) { return getJson(gitRepo + file); } // Syntactic sugar to make the core configuration array much easier to read
 
 async function importFallback(specifier) { // Resolves plugins dynamically, trying local node_modules first, then global
-	// [Risk 12] Fragile Deep Internal Imports
 	try {
 		const localModule = await import(specifier); // Always prefer local dependencies for project-specific pinning
 		console.info(`Loaded (import=local): ${specifier} (keys: ${Object.keys(localModule)})`); // Log where it came from for debugging
@@ -121,7 +126,13 @@ async function importFallback(specifier) { // Resolves plugins dynamically, tryi
 	}
 	catch {
 		try {
-			const globalModule = await import(`file://${npmGlobal}/${specifier}`); // Fallback to global allows zero-install linting across new projects
+			const { createRequire } = await import('node:module'), // Use Node's standard module resolution to avoid brittle deep paths
+				{ pathToFileURL } = await import('node:url'),
+				{ join } = await import('node:path'),
+				req = createRequire(join(npmGlobal, 'noop.js')), // Fake path inside the global root sets the resolution context
+				resolvedPath = req.resolve(specifier), // Resolves package main exports naturally
+				globalModule = await import(pathToFileURL(resolvedPath).href); // Convert the absolute path to a valid file:// URL for the dynamic import
+
 			console.info(`Loaded (import=global): ${specifier} (keys: ${Object.keys(globalModule)})`); // Log global fallback
 			return globalModule; // Success
 		}
@@ -147,7 +158,7 @@ const cfg = [ // The foundational ESLint config array that will be exported
 	{
 		files: ['**/*.js', '**/*.mjs'], // Apply these baseline rules to all standard JavaScript files
 		languageOptions: {
-			globals: { ...(await importFallback('globals/index.js')).default?.[await detectEnv()] } // Inject environment globals so ESLint doesn't complain about undefined variables
+			globals: { ...(await importFallback('globals')).default?.[await detectEnv()] } // Inject environment globals so ESLint doesn't complain about undefined variables
 		},
 		rules: await git('rules/javascript.jsonc'), // Load our centralized, remote JavaScript opinions
 	},
@@ -156,7 +167,7 @@ const cfg = [ // The foundational ESLint config array that will be exported
 // --- PLUGIN RESOLUTION ---
 await Promise.all([ // Load all language plugins concurrently to minimize total startup time
 	(async () => { // JSON Plugin Block
-		const { default: json } = await importFallback('@eslint/json/dist/esm/index.js'); // Deep import bypasses module exports restrictions if needed
+		const { default: json } = await importFallback('@eslint/json'); // Bare specifier prevents breakages from internal path changes
 		if (!json) { return; } // Silently skip if not installed; degrades gracefully instead of crashing
 		cfg.unshift({ plugins: { json } }); // Register plugin globally via unshift so it's available to all subsequent configs
 		const rules = await git('rules/json.jsonc'); // Fetch our JSON opinions
@@ -164,13 +175,13 @@ await Promise.all([ // Load all language plugins concurrently to minimize total 
 		cfg.push({ files: ['**/*.jsonc', '.vscode/*.json'], language: 'json/jsonc', rules }); // Apply relaxed rules (allowing comments) to JSONC files
 	})(),
 	(async () => { // Markdown Plugin Block
-		const { default: markdown } = await importFallback('@eslint/markdown/dist/esm/index.js'); // Deep import for markdown plugin
+		const { default: markdown } = await importFallback('@eslint/markdown'); // Bare specifier for markdown plugin
 		if (!markdown) { return; } // Silently degrade
 		const rules = await git('rules/markdown.jsonc'); // Fetch Markdown opinions
 		cfg.push({ files: ['**/*.md'], plugins: { markdown }, language: 'markdown/commonmark', rules }); // Bind the plugin and rules to .md files
 	})(),
 	(async () => { // CSS Plugin Block
-		const { default: css } = await importFallback('@eslint/css/dist/index.js'); // Deep import for CSS plugin
+		const { default: css } = await importFallback('@eslint/css'); // Bare specifier for CSS plugin
 		if (!css) { return; } // Silently degrade
 		const rules = await git('rules/css.jsonc'); // Fetch CSS opinions
 		if (rules['css/require-baseline'] && !css.rules['require-baseline'] && css.rules['use-baseline']) { // Handle upstream breaking changes dynamically
@@ -180,10 +191,10 @@ await Promise.all([ // Load all language plugins concurrently to minimize total 
 		cfg.push({ files: ['**/*.css'], plugins: { css }, language: 'css/css', rules }); // Bind plugin and rules to .css files
 	})(),
 	(async () => { // HTML Plugin Block
-		const { default: html } = await importFallback('@html-eslint/eslint-plugin/lib/index.js'); // Deep import for HTML plugin
+		const { default: html } = await importFallback('@html-eslint/eslint-plugin'); // Bare specifier for HTML plugin
 		if (!html) { return; } // Silently degrade
 		const rules = await git('rules/html.jsonc'), // Fetch HTML opinions
-			{ default: parser } = await importFallback('@html-eslint/parser/lib/index.js'); // HTML linting requires a specific custom parser
+			{ default: parser } = await importFallback('@html-eslint/parser'); // HTML linting requires a specific custom parser
 
 		cfg.push({ // Bind plugin, parser, and rules to .html files
 			files: ['**/*.html'], rules, plugins: { '@html-eslint': html }, // Standard bindings
