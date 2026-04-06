@@ -6,4 +6,5 @@
 	"json/no-unsafe-values": "error", /* warns on values that are unsafe for interchange, such as strings with unmatched surrogates, numbers that evaluate to Infinity, numbers that evaluate to zero unintentionally, numbers that look like integers but are too large, and subnormal numbers. */
 	"json/no-unnormalized-keys": "error", /* warns on keys containing unnormalized characters. You can optionally specify the normalization form via { form: "form_name" }, where form_name can be any of "NFC", "NFD", "NFKC", or "NFKD". */
 	"json/top-level-interop": "error" /* warns when the top-level item in the document is neither an array nor an object. This can be enabled to ensure maximal interoperability with the oldest JSON parsers. */
+	/* "json/sort-keys": ["warn", { pathPattern: ".*", order: "asc" }] - AI Suggestion Rejected */
 }

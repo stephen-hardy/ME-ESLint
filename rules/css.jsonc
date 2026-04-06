@@ -6,5 +6,5 @@
 	"css/no-invalid-at-rules": "error", /* R:1 - Disallow invalid at-rules */
 	"css/no-invalid-properties": "error", /* R:1 - Disallow invalid properties */
 	/* "css/use-layers": ["error", { allowUnnamedLayers: true }], - R:0 - Require use of layers */
-	"css/require-baseline": "error" /* R:1 - Enforce the use of baseline features - { available: "widely" | "newly" } */
+	"css/use-baseline": "error" /* R:1 - Enforce the use of baseline features - { available: "widely" | "newly" } */
 }

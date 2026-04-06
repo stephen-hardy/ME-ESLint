@@ -1,7 +1,6 @@
 /* NOTE: this is not a true JSONC file, as you should NOT use inline comment syntax. Only multi-line comment syntax, even when used on a single line. This is to avoid the requirement of an actual JSONC parser, and instead just strip the multiline comments out with a String.replaceAll() call. Not 100% fool proof, but likely sufficient given that "/*" is a very uncommon pattern for non-comments */
 {
 	/* ERRORs: These will prevent commit, if so configured */
-		"linebreak-style": "error",
 		"no-eval": "error",
 		"no-undef": "error",
 		"eqeqeq": "error",
@@ -9,7 +8,7 @@
 		"no-dupe-keys": "error",
 		"no-duplicate-case": "error",
 		"no-empty-character-class": "error",
-		"no-empty": "error",
+		"no-empty": ["error", { "allowEmptyCatch": true }],
 		"no-ex-assign": "error",
 		"no-extra-boolean-cast": "error",
 		"no-func-assign": "error",
@@ -24,7 +23,6 @@
 		"valid-typeof": "error",
 		"block-scoped-var": "error",
 		"curly": "error",
-		"dot-location": ["error", "property"],
 		"dot-notation": "error",
 		"no-caller": "error",
 		"no-case-declarations": "error",
@@ -34,13 +32,11 @@
 		"no-extra-bind": "error",
 		"no-extra-label": "error",
 		"no-fallthrough": "error",
-		"no-floating-decimal": "error",
 		"no-global-assign": "error",
 		"no-implicit-globals": "error",
 		"no-implied-eval": "error",
 		"no-invalid-this": "error",
 		"no-lone-blocks": "error",
-		"no-multi-spaces": "error",
 		"no-multi-str": "error",
 		"no-new-func": "error",
 		"no-new-wrappers": "error",
@@ -62,68 +58,32 @@
 		"no-void": "error",
 		"no-with": "error",
 		"radix": "error",
-		"strict": ["error", "global"],
+		"strict": ["error", "global"], /* Ignored in modules, but acts as a safety net for standard script files */
+		"logical-assignment-operators": ["error", "always", { "enforceForIfStatements": true }],
+		"no-constant-binary-expression": "error",
+		"object-shorthand": "error",
+		"prefer-template": "error",
 		"no-delete-var": "error",
 		"no-label-var": "error",
 		"no-shadow-restricted-names": "error",
 		"no-undef-init": "error",
 		"no-use-before-define": ["error", { "functions": false }],
-		"array-bracket-spacing": "error",
-		"block-spacing": "error",
-		"brace-style": ["error", "stroustrup", { "allowSingleLine": true }],
-		"comma-spacing": "error",
-		"comma-style": "error",
-		"computed-property-spacing": "error",
-		"func-call-spacing": "error",
-		"key-spacing": "error",
-		"keyword-spacing": "error",
 		"no-array-constructor": "error",
 		"no-lonely-if": "error",
-		"no-multiple-empty-lines": "error",
 		"no-nested-ternary": "error",
-		"no-new-object": "error",
-		"no-trailing-spaces": "error",
+		"no-object-constructor": "error",
 		"no-unneeded-ternary": "error",
-		"no-whitespace-before-property": "error",
-		"object-curly-spacing": ["error", "always"],
 		"one-var": ["error", "consecutive"],
 		"operator-assignment": "error",
-		"operator-linebreak": ["error", "before"],
-		"quote-props": ["error", "as-needed"],
-		"quotes": ["error", "single", { "avoidEscape": true }],
-		"semi-spacing": "error",
-		"semi": "error",
-		"space-before-blocks": "error",
-		"space-before-function-paren": [
-			"error",
-			{
-				"anonymous": "never",
-				"named": "never",
-				"asyncArrow": "always"
-			}
-		],
-		"space-in-parens": "error",
-		"space-infix-ops": "error",
-		"space-unary-ops": "error",
 		"no-const-assign": "error",
 		"no-var": "error",
 		"no-throw-literal": "error",
 		"no-async-promise-executor": "error",
-		"no-return-await": "error",
 	/* WARNs */
 		"prefer-promise-reject-errors": "warn",
-		"no-await-in-loop": "warn",
+		"no-await-in-loop": "warn", /* intentionally run sequentially vs Promise.all */
 		"no-constant-condition": "warn",
 		"no-debugger": "warn",
-		"no-mixed-operators": "warn",
-		"no-extra-parens": [
-			"warn",
-			"all",
-			{
-				"nestedBinaryExpressions": false,
-				"returnAssign": false
-			}
-		],
 		"no-prototype-builtins": "warn",
 		"array-callback-return": "warn",
 		"complexity": ["warn", 15],
@@ -138,7 +98,7 @@
 			{
 				"builtinGlobals": true,
 				"hoist": "all",
-				"allow": ["_", "name"]
+				"allow": ["_", "name", "status", "event"]
 			}
 		],
 		"no-unused-vars": ["error", { "args": "all", "argsIgnorePattern": "^_" }],
@@ -148,19 +108,67 @@
 			"warn",
 			{
 				"min": 0,
-				"max": 20,
+				"max": 30,
 				"exceptions": ["attributeChangedCallback"]
 			}
 		],
-		"max-len": ["warn", { "code": 130, "ignoreComments": true }],
 		"max-nested-callbacks": ["warn", 3],
 		"max-params": ["warn", 4],
-		"max-statements-per-line": ["warn", { "max": 4 }],
 		"new-cap": "warn",
 		"no-negated-condition": "warn",
-		"spaced-comment": ["warn", "always", { "markers": ["#"] }],
 		"prefer-const": ["warn", { "destructuring": "all" }],
+		"prefer-destructuring": ["warn", { "object": true, "array": false }],
 	/* OFF: intentionally disabled */
-		"no-promise-executor-return": "off",
-		"no-console": "off"
+		"no-promise-executor-return": "off", /* allows concise exit: return resolve(val) */
+		"no-console": "off",
+	/* DEPRECATED RULES */
+		/* Deprecated in v8.53.0 (Expected removal in v10.0.0 (formatting rules moved to @stylistic/eslint-plugin-js)) */
+			"linebreak-style": "error",
+			"dot-location": ["error", "property"],
+			"no-floating-decimal": "error",
+			"no-multi-spaces": "error",
+			"indent": ["error", "tab"],
+			"array-bracket-spacing": "error",
+			"block-spacing": "error",
+			/* AI Suggestion Rejected: 1tbs. Stroustrup is preferred over 1tbs despite vertical density goals. */
+					"brace-style": ["error", "stroustrup", { "allowSingleLine": true }],
+			"comma-spacing": "error",
+			"comma-style": "error",
+			"computed-property-spacing": "error",
+			"func-call-spacing": "error",
+			"key-spacing": "error",
+			"keyword-spacing": "error",
+			"no-multiple-empty-lines": "error",
+			"no-trailing-spaces": "error",
+			"no-whitespace-before-property": "error",
+			"object-curly-spacing": ["error", "always"],
+			"operator-linebreak": ["error", "before"],
+			"quote-props": ["error", "as-needed"],
+			"quotes": ["error", "single", { "avoidEscape": true }],
+			"semi-spacing": "error",
+			"semi": "error",
+			"space-before-blocks": "error",
+			"space-before-function-paren": [
+						"error",
+						{
+							"anonymous": "never",
+							"named": "never",
+							"asyncArrow": "always"
+						}
+					],
+			"space-in-parens": "error",
+			"space-infix-ops": "error",
+			"space-unary-ops": "error",
+			"no-mixed-operators": "warn",
+			"no-extra-parens": [
+						"warn",
+						"all",
+						{
+							"nestedBinaryExpressions": false,
+							"returnAssign": false
+						}
+					],
+			"max-len": ["warn", { "code": 130, "ignoreComments": true }],
+			"max-statements-per-line": ["warn", { "max": 4 }],
+			"spaced-comment": ["warn", "always", { "markers": ["#"] }]
 }
