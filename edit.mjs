@@ -209,14 +209,11 @@ export default cfg; // Provide the resolved, dynamic configuration to ESLint
 // [Risk 7] Security & Reproducible Builds (Self-Update)
 if (process.argv[1] === import.meta.filename) { // Ensures update logic ONLY runs when manually executed (node edit.mjs), preventing drive-by updates during linting
 	try {
-		const [response, { exec }, dir] = await Promise.all([
-			fetch(gitRepo + 'eslint.config.mjs'), // Fetch the master copy of this very script
-			import('node:child_process'),
-			getCacheDir() // Get the cache directory to open
-		]),
-			newETag = response.headers.get('eTag'); // Use the server's ETag to cheaply check for changes without comparing full bodies
+		const [{ exec }, dir] = await Promise.all([import('node:child_process'), getCacheDir()]);
+		exec(process.platform === 'win32' ? `explorer "${dir}"` : `open "${dir}"`); // Open the cache folder regardless of update status
 
-		exec(process.platform === 'win32' ? `explorer "${dir}"` : `open "${dir}"`); // Open the cache folder in Windows Explorer or Finder
+		const response = await fetch(gitRepo + 'eslint.config.mjs'), // Fetch the master copy of this very script
+			newETag = response.headers.get('eTag'); // Use the server's ETag to cheaply check for changes without comparing full bodies
 
 		if (eTag === newETag) { console.info('config.mjs: template up-to-date'); } // Skip write if identical to save disk I/O
 		else {
