@@ -5,7 +5,8 @@
 // npm i globals@latest @eslint/json@latest @eslint/markdown@latest @eslint/css@latest @html-eslint/eslint-plugin@latest @html-eslint/parser@latest
 
 // --- CONFIGURATION & GLOBAL STATE ---
-let cacheDirPromise = null; // Singleton prevents a race condition where multiple async calls try to create the cache dir simultaneously
+let cacheDirPromise = null, // Singleton prevents a race condition where multiple async calls try to create the cache dir simultaneously
+	allLoadedSuccessfully = true; // Tracks if all JSONC and module loads were successful to display a success message at the end
 const eTag = '', // Tracks the currently installed version hash for the self-update mechanism to avoid unnecessary file writes
 	gitRepo = 'https://raw.githubusercontent.com/stephen-hardy/ME-ESLint/refs/heads/main/', // Defines the single source of truth for remote rulesets, centralizing rule management across projects
 	npmGlobalCached = await getTemp('npmGlobal.txt'), // Caching avoids the ~500ms+ penalty of shelling out to npm on every ESLint run
@@ -52,7 +53,7 @@ async function saveTemp(file, content) { // Centralized function for writing cac
 	const [fs, path, nodeCrypto] = await Promise.all([import('node:fs/promises'), import('node:path'), import('node:crypto')]), // Lazy load fs, path, and crypto for performance
 		dir = await getCacheDir(), // Ensure the destination directory exists before we try to write
 		filePath = path.join(dir, file), // Construct the final destination path
-		tempPath = filePath + '.tmp' + nodeCrypto.randomBytes(8).toString('hex'); // Use crypto for a random suffix to prevent collisions if multiple ESLint processes run simultaneously
+		tempPath = `${filePath}.tmp${nodeCrypto.randomBytes(8).toString('hex')}`; // Use crypto for a random suffix to prevent collisions if multiple ESLint processes run simultaneously
 
 	try {
 		await fs.writeFile(tempPath, content); // Write to a temp file first to prevent corruption if the process crashes mid-write
@@ -96,7 +97,7 @@ async function getCache(url, cacheFile, logURL) { // Implements stale-while-reva
 
 async function getJson(url) { // Main entrypoint for loading configuration JSONs, handling the cache/fetch priority
 	const cacheFile = url.split('/').at(-1), // Use the filename from the URL as a simple unique key for the cache
-		logURL = url.startsWith(gitRepo) ? '[git]' + url.slice(gitRepo.length - 1) : url, // Shorten GitHub URLs in the logs to reduce console spam
+		logURL = url.startsWith(gitRepo) ? `[git]${url.slice(gitRepo.length - 1)}` : url, // Shorten GitHub URLs in the logs to reduce console spam
 		cache = await getCache(url, cacheFile, logURL); // Attempt the fast path (disk cache) first
 
 	if (cache) { return cache; } // If we got cached data, we are done
@@ -110,13 +111,14 @@ async function getJson(url) { // Main entrypoint for loading configuration JSONs
 		return parsed; // Return the fresh data
 	}
 	catch (err) {
+		allLoadedSuccessfully = false; // [Rule 5] Graceful Degradation over Hard Failures
 		console.error(`\x1b[31m[ERROR]\x1b[0m Loading ${url} failed, falling back to empty object. (Lint results may be incomplete)`); // Warn the user their config is degraded
 		console.error(err); // Provide the stack trace so they can debug network issues
 		return {}; // Return empty object so ESLint doesn't crash entirely, allowing other valid rules to still run
 	}
 }
 
-async function git(file) { return getJson(gitRepo + file); } // Syntactic sugar to make the core configuration array much easier to read
+async function git(file) { return getJson(`${gitRepo}${file}`); } // Syntactic sugar to make the core configuration array much easier to read
 
 async function importFallback(specifier) { // Resolves plugins dynamically, trying local node_modules first, then global
 	try {
@@ -137,6 +139,7 @@ async function importFallback(specifier) { // Resolves plugins dynamically, tryi
 			return globalModule; // Success
 		}
 		catch {
+			allLoadedSuccessfully = false; // [Rule 5] Graceful Degradation over Hard Failures
 			console.error(`\x1b[31m[ERROR]\x1b[0m Failed to import: ${specifier}. (Ensure it's installed locally or globally via npm)`); // Warn about missing plugins
 			return {}; // Return empty object so destructuring (e.g. { default: plugin }) doesn't crash the script
 		}
@@ -203,21 +206,26 @@ await Promise.all([ // Load all language plugins concurrently to minimize total 
 	})()
 ]);
 
+if (allLoadedSuccessfully) { console.info('\x1b[32m[SUCCESS]\x1b[0m everything loaded successfully'); } // Provide a clear visual indicator that the complex dynamic configuration finished without any fallback errors
+
 export default cfg; // Provide the resolved, dynamic configuration to ESLint
 
 // --- SELF-UPDATE MECHANISM ---
 // [Risk 7] Security & Reproducible Builds (Self-Update)
 if (process.argv[1] === import.meta.filename) { // Ensures update logic ONLY runs when manually executed (node edit.mjs), preventing drive-by updates during linting
 	try {
-		const [{ exec }, dir] = await Promise.all([import('node:child_process'), getCacheDir()]);
+		const [{ exec }, dir, response] = await Promise.all([
+			import('node:child_process'),
+			getCacheDir(),
+			fetch(`${gitRepo}eslint.config.mjs`) // Fetch the master copy of this very script concurrently with other initialization
+		]);
 		exec(process.platform === 'win32' ? `explorer "${dir}"` : `open "${dir}"`); // Open the cache folder regardless of update status
 
-		const response = await fetch(gitRepo + 'eslint.config.mjs'), // Fetch the master copy of this very script
-			newETag = response.headers.get('eTag'); // Use the server's ETag to cheaply check for changes without comparing full bodies
+		const newETag = response.headers.get('eTag'); // Use the server's ETag to cheaply check for changes without comparing full bodies
 
 		if (eTag === newETag) { console.info('config.mjs: template up-to-date'); } // Skip write if identical to save disk I/O
 		else {
-			console.info('config.mjs: update template to ' + newETag); // Notify user an update is occurring
+			console.info(`config.mjs: update template to ${newETag}`); // Notify user an update is occurring
 			const text = await response.text(), // Read the new source code
 				{ writeFile } = await import('node:fs/promises'); // Lazy load fs
 
